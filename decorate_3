@@ -1,3 +1,6 @@
+
+
+
 for i in range(A_matrix_flattened.shape[0]):  # 64 个样本
     plt.figure(figsize=(8, 6))
     plt.axhspan(-0.12, 0.12, color='green', alpha=0.1, label='Shaded Area (-0.12 to 0.12)')
@@ -12,3 +15,32 @@ for i in range(A_matrix_flattened.shape[0]):  # 64 个样本
     plt.grid(True,linestyle='--')
     plt.legend()
     plt.show()
+
+
+
+
+num_samples = A_matrix_flattened.shape[0]  # 样本数量，这里是 64
+samples_per_row = 8  # 每行图像数量
+
+# 创建一个 figure 和多个子图 (8行 x 8列)
+fig, axes = plt.subplots(nrows=8, ncols=8, figsize=(20, 20))  # 8x8 网格
+axes = axes.flatten()  # 将二维数组展平，方便一一访问
+
+# 绘制每个样本的散点图
+for i in range(num_samples):
+    ax = axes[i]  # 选择当前的子图
+    ax.axhspan(-0.12, 0.12, color='green', alpha=0.1, label='Shaded Area (-0.12 to 0.12)')
+    ax.scatter(range(400), A_matrix_flattened[i], color='red', marker='x', alpha=1, label='Filtered Points')
+    ax.axhline(y=-0.12, color='brown', linestyle='--', label='y = -0.12')
+    ax.axhline(y=0.12, color='brown', linestyle='--', label='y = 0.12')
+    ax.text(0, -0.12, 'y = -0.12', color='r', verticalalignment='bottom', horizontalalignment='left')
+    ax.text(0, 0.12, 'y = 0.12', color='g', verticalalignment='top', horizontalalignment='left')
+    ax.set_title(f'Sample {i+1}')
+    ax.set_xlabel('Index')
+    ax.set_ylabel('Error Value')
+    ax.grid(True, linestyle='--')
+    ax.legend()
+
+# 调整布局，确保子图不会重叠
+plt.tight_layout()
+plt.show()
