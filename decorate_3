@@ -1,3 +1,7 @@
+ ax.set_ylim(y_min, y_max)
+A_matrix_flattened = np.abs(A_matrix_flattened)
+
+
 
 
 
