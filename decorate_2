@@ -1,0 +1,45 @@
+# Step 2: 加载 input{i}.pt 和 target{i}.pt 文件夹中的所有文件
+test_folder = r'F:\ENGINE_normalized_data\test'  # 输入文件所在目录
+input_files = sorted([f for f in os.listdir(test_folder) if f.startswith('input') and f.endswith('.pt')])  # 查找所有 input{i}.pt 文件
+target_files = sorted([f for f in os.listdir(test_folder) if f.startswith('target') and f.endswith('.pt')])  # 查找所有 target{i}.pt 文件
+
+# # Step 3: 只处理前 600 个文件
+# input_files = input_files[:200]  # 只选择前 600 个 input 文件
+# target_files = target_files[:200]  # 只选择前 600 个 target 文件
+
+# Step 4: 初始化保存结果的列表
+A_values = []  # 用于存储 A 值
+predicted_outputs = []  # 用于存储预测结果
+true_outputs = []  # 用于存储真实结果
+
+# Step 5: 逐个加载 input 和 target 文件，进行预测并计算 A
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+net.to(device)  # 确保模型在正确的设备上
+
+for input_file, target_file in zip(input_files, target_files):
+    # 加载输入和目标张量
+    input_tensor = torch.load(os.path.join(test_folder, input_file)).to(device)
+    output_tensor = torch.load(os.path.join(test_folder, target_file)).to(device)
+    
+    # 进行预测
+    with torch.no_grad():
+        predicted_output = net(input_tensor.unsqueeze(0)) * target_std + target_mean   # 预测结果
+        output_tensor = output_tensor * target_std + target_mean  # 转换目标张量到原始尺度
+    
+    # 计算 A 值
+    A = (output_tensor - predicted_output) / output_tensor  # A 计算公式
+
+    # 将预测结果、真实结果和 A 值转回 CPU 并转为 NumPy 数组 (去除 batch 维度)
+    predicted_outputs.append(predicted_output.squeeze().cpu().numpy())  # 去掉 batch 维度，得到 (20, 20)
+    true_outputs.append(output_tensor.squeeze().cpu().numpy())  # 去掉 batch 维度，得到 (20, 20)
+    A_values.append(A.squeeze().cpu().numpy())  # 计算 A 值，并去掉 batch 维度，得到 (20, 20)
+
+# Step 6: 将结果转换为 NumPy 数组，形状应为 (600, 20, 20)
+predicted_outputs = np.array(predicted_outputs)  # 形状为 (600, 20, 20)
+true_outputs = np.array(true_outputs)  # 形状为 (600, 20, 20)
+A_matrix = np.array(A_values)  # 形状为 (600, 20, 20)
+
+# 打印输出的形状
+print(f"Predicted outputs shape: {predicted_outputs.shape}")  # 打印预测输出的形状
+print(f"True outputs shape: {true_outputs.shape}")  # 打印真实输出的形状
+print(f"A matrix shape: {A_matrix.shape}")  # 打印 A 的形状
