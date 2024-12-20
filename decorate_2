@@ -43,3 +43,17 @@ A_matrix = np.array(A_values)  # 形状为 (600, 20, 20)
 print(f"Predicted outputs shape: {predicted_outputs.shape}")  # 打印预测输出的形状
 print(f"True outputs shape: {true_outputs.shape}")  # 打印真实输出的形状
 print(f"A matrix shape: {A_matrix.shape}")  # 打印 A 的形状
+
+
+
+
+
+
+# Step 7: 绘制散点图
+for i in range(A_matrix_flattened.shape[0]):  # 64 个样本
+    plt.figure(figsize=(8, 6))
+    plt.scatter(range(400), A_matrix_flattened[i])  # 400 个点
+    plt.title(f'Scatter plot for sample {i+1}')
+    plt.xlabel('Index')
+    plt.ylabel('A Value')
+    plt.show()
