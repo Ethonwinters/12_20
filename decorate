@@ -1,0 +1,76 @@
+test_folder = r'F:\ENGINE_normalized_data\test'  # 输入文件所在目录
+input_files = sorted([f for f in os.listdir(test_folder) if f.startswith('input') and f.endswith('.pt')])  # 查找所有 input{i}.pt 文件
+target_files = sorted([f for f in os.listdir(test_folder) if f.startswith('target') and f.endswith('.pt')])  # 查找所有 target{i}.pt 文件
+
+# Step 4: 初始化保存结果的列表
+A_values = []  # 用于存储 A 值
+predicted_outputs = []  # 用于存储预测结果
+true_outputs = []  # 用于存储真实结果
+input_channels_0 = []  # 用于存储第0通道的值
+input_files_list = []  # 用于存储每个R²值对应的input文件名
+
+# Step 5: 逐个加载 input 和 target 文件，进行预测并计算 A
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+net.to(device)  # 确保模型在正确的设备上
+
+for input_file, target_file in zip(input_files, target_files):
+    # 加载输入和目标张量
+    input_tensor = torch.load(os.path.join(test_folder, input_file)).to(device)
+    output_tensor = torch.load(os.path.join(test_folder, target_file)).to(device)
+    
+    # 进行预测
+    with torch.no_grad():
+        predicted_output = net(input_tensor.unsqueeze(0)) * target_std + target_mean   # 预测结果
+        output_tensor = output_tensor * target_std + target_mean  # 转换目标张量到原始尺度
+    
+    # 计算 A 值
+    A = (output_tensor - predicted_output) / output_tensor  # A 计算公式
+
+    # 将预测结果、真实结果和 A 值转回 CPU 并转为 NumPy 数组 (去除 batch 维度)
+    predicted_outputs.append(predicted_output.squeeze().cpu().numpy())  
+    true_outputs.append(output_tensor.squeeze().cpu().numpy()) 
+    A_values.append(A.squeeze().cpu().numpy())  
+    
+    # 获取第0通道的值并记录文件名
+    input_channels_0.append(input_tensor[0, 0].cpu().numpy())  # 假设 input_tensor 的维度是 [batch_size, channels, height, width]
+    input_files_list.append(input_file)  # 记录当前文件名
+
+# 转换为 NumPy 数组
+predicted_outputs = np.array(predicted_outputs) 
+true_outputs = np.array(true_outputs) 
+A_matrix = np.array(A_values)  
+
+# 假设每个张量的形状是 (64, 400)，则重塑
+true_outputs = true_outputs.reshape(64, 400)
+A_matrix = A_matrix.reshape(64, 400)
+predicted_outputs = predicted_outputs.reshape(64, 400)
+
+r2_values = np.zeros((64, 1))
+
+# 对每一行计算 R² 值
+for i in range(64):
+    y_true = true_outputs[i, :]  # 取 true_outputs 的第 i 行
+    y_pred = predicted_outputs[i, :]  # 取 predicted_outputs 的第 i 行
+    
+    # 计算均值
+    mean_true = np.mean(y_true)
+    
+    # 计算总平方和 (SS_tot) 和残差平方和 (SS_res)
+    ss_tot = np.sum((y_true - mean_true) ** 2)
+    ss_res = np.sum((y_true - y_pred) ** 2)
+    
+    # 计算 R²
+    r2 = 1 - (ss_res / ss_tot)
+    
+    # 存储 R² 值
+    r2_values[i] = r2
+
+# 打印结果
+print(f"R² values (64, 1) matrix:\n{r2_values}")
+
+# 生成一个 (64, 1) 的张量或矩阵，存储每个文件对应的第0通道值
+input_channels_0_matrix = np.array(input_channels_0).reshape(64, 1)
+
+# 打印第0通道的值对应的文件名称和对应的值
+for i in range(64):
+    print(f"Input file: {input_files_list[i]}, R² value: {r2_values[i]}, Input channel 0 value: {input_channels_0_matrix[i]}")
